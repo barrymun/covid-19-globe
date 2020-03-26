@@ -24,6 +24,8 @@ class App extends Base {
     scene: null,
     camera: null,
     globe: null,
+    isMouseDown: false,
+    lastPosition: null,
   };
 
 
@@ -34,12 +36,100 @@ class App extends Base {
     this.container = React.createRef();
 
     // bindings
+    this.mouseDown = this.mouseDown.bind(this);
+    this.mouseMove = this.mouseMove.bind(this);
+    this.mouseUp = this.mouseUp.bind(this);
+    this.build = this.build.bind(this);
     this.animate = this.animate.bind(this);
     this.onLoadTexture = this.onLoadTexture.bind(this);
   }
 
 
   async componentDidMount() {
+    // listeners
+    window.addEventListener("mousedown", this.mouseDown);
+    window.addEventListener("mousemove", this.mouseMove);
+    window.addEventListener("mouseup", this.mouseUp);
+
+    // init
+    await this.build();
+  }
+
+
+  componentWillUnmount() {
+    // destroy listeners
+    window.removeEventListener("mousedown", this.mouseDown);
+    window.removeEventListener("mousemove", this.mouseMove);
+    window.removeEventListener("mouseup", this.mouseUp);
+  }
+
+
+  /**
+   *
+   * @param e
+   * @returns {Promise<void>}
+   */
+  async mouseDown(e) {
+    await this.setStateAsync({isMouseDown: true, lastPosition: null});
+  }
+
+
+  /**
+   *
+   * @param e
+   * @returns {Promise<void>}
+   */
+  async mouseMove(e) {
+    let {
+      globe,
+      isMouseDown,
+      lastPosition,
+    } = this.state;
+
+    // check
+    if (!isMouseDown) return;
+
+    // handle null case
+    if (lastPosition == null) {
+      lastPosition = {
+        x: e.clientX,
+        y: e.clientY,
+      };
+    }
+
+    const moveX = (e.clientX - lastPosition.x);
+    const moveY = (e.clientY - lastPosition.y);
+
+    globe.rotation.y += (moveX * 0.002);
+    globe.rotation.x += (moveY * 0.002);
+
+    await this.setStateAsync(prevState => ({
+      globe,
+      lastPosition: {
+        ...prevState.lastPosition,
+        x: e.clientX,
+        y: e.clientY,
+      },
+    }));
+
+  }
+
+
+  /**
+   *
+   * @param e
+   * @returns {Promise<void>}
+   */
+  async mouseUp(e) {
+    await this.setStateAsync({isMouseDown: false});
+  }
+
+
+  /**
+   *
+   * @returns {Promise<void>}
+   */
+  async build() {
     let renderer = new THREE.WebGLRenderer();
     renderer.setSize(WIDTH, HEIGHT);
 
