@@ -32,7 +32,7 @@ class App extends Base {
     this.renderer.setSize(WIDTH, HEIGHT);
 
     this.camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
-    this.camera.position.set(0, 0, 500);
+    this.camera.position.set(0, 0, 300);
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x000);
@@ -82,7 +82,7 @@ class App extends Base {
     this.renderer.render(this.scene, this.camera);
 
     // rotate
-    this.globe.rotation.y += 0.002;
+    this.globe.rotation.y += 0.003;
     // this.globe.rotation.x += 0.01;
 
     // schedule the next frame:
@@ -94,7 +94,7 @@ class App extends Base {
     return (
       <div
         ref={node => this.container = node}
-        style={{width: `100vw`, height: `100vh`}}
+        // style={{width: `100vw`, height: `100vh`}}
       />
     );
   }
