@@ -2,6 +2,8 @@ import React from 'react';
 import * as THREE from "three";
 import {Base} from "./_components";
 
+import "./_static/css/globe.css";
+
 const EARTH_PATH = "images/earth2048.jpg";
 const WIDTH = window.innerWidth;
 const HEIGHT = window.innerHeight;
@@ -33,6 +35,7 @@ class App extends Base {
 
     // bindings
     this.animate = this.animate.bind(this);
+    this.onLoadTexture = this.onLoadTexture.bind(this);
   }
 
 
@@ -44,10 +47,10 @@ class App extends Base {
     this.container.appendChild(renderer.domElement);
 
     let camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
-    camera.position.set(0, 0, 300);
+    camera.position.set(0, 0, 350);
 
     let scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000);
+    scene.background = new THREE.Color(0xffffff);
     scene.add(camera);
 
     let globe = new THREE.Group();
@@ -56,23 +59,10 @@ class App extends Base {
     let loader = new THREE.TextureLoader();
     loader.load(
       EARTH_PATH,
-      texture => {
-
-        // Create the sphere
-        let sphere = new THREE.SphereGeometry(RADIUS, SEGMENTS, RINGS);
-        // Map the texture to the material.
-        let material = new THREE.MeshBasicMaterial({map: texture, overdraw: 0.5});
-        // Create a new mesh with sphere geometry.
-        let mesh = new THREE.Mesh(sphere, material);
-
-        // Add mesh to globe
-        globe.add(mesh);
-
-      },
+      texture => this.onLoadTexture(texture),
       null,
-      err => {
-        console.log({err})
-      });
+      err => console.log({err})
+    );
 
     // set initial position
     globe.position.z = -300;
@@ -109,7 +99,7 @@ class App extends Base {
     renderer.render(scene, camera);
 
     // rotate
-    globe.rotation.y += 0.003;
+    globe.rotation.y += 0.002;
     // globe.rotation.x += 0.01;
 
     await this.setStateAsync({
@@ -124,11 +114,36 @@ class App extends Base {
   }
 
 
+  /**
+   *
+   * @param texture
+   * @returns {Promise<void>}
+   */
+  async onLoadTexture(texture) {
+    let {globe} = this.state;
+
+    // sphere geometry
+    let geometry = new THREE.SphereGeometry(RADIUS, SEGMENTS, RINGS);
+
+    // mesh material ...
+    // let material = new THREE.MeshBasicMaterial({color: 0x51D3FF});
+    let material = new THREE.MeshBasicMaterial({map: texture, overdraw: 0.5});
+
+    // create a new mesh with sphere geometry.
+    let mesh = new THREE.Mesh(geometry, material);
+
+    // Add mesh to globe
+    globe.add(mesh);
+
+    this.setStateAsync({globe})
+  }
+
+
   render() {
     return (
       <div
+        className={`container`}
         ref={node => this.container = node}
-        // style={{width: `100vw`, height: `100vh`}}
       />
     );
   }
