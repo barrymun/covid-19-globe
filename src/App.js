@@ -39,8 +39,9 @@ class App extends Base {
     this.mouseDown = this.mouseDown.bind(this);
     this.mouseMove = this.mouseMove.bind(this);
     this.mouseUp = this.mouseUp.bind(this);
+    this.rotate = this.rotate.bind(this);
     this.build = this.build.bind(this);
-    this.animate = this.animate.bind(this);
+    this.spin = this.spin.bind(this);
     this.onLoadTexture = this.onLoadTexture.bind(this);
   }
 
@@ -81,7 +82,6 @@ class App extends Base {
    */
   async mouseMove(e) {
     let {
-      globe,
       isMouseDown,
       lastPosition,
     } = this.state;
@@ -100,11 +100,12 @@ class App extends Base {
     const moveX = (e.clientX - lastPosition.x);
     const moveY = (e.clientY - lastPosition.y);
 
-    globe.rotation.y += (moveX * 0.002);
-    globe.rotation.x += (moveY * 0.002);
+    await this.rotate({
+      y: (moveX * 0.002),
+      x: (moveY * 0.002),
+    });
 
     await this.setStateAsync(prevState => ({
-      globe,
       lastPosition: {
         ...prevState.lastPosition,
         x: e.clientX,
@@ -170,37 +171,57 @@ class App extends Base {
       globe,
     });
 
-    this.animate();
+    this.spin();
   }
 
 
   /**
    *
    */
-  async animate() {
+  async spin() {
     let {
       renderer,
       scene,
       camera,
-      globe,
     } = this.state;
 
     // render:
     renderer.render(scene, camera);
 
     // rotate
-    globe.rotation.y += 0.002;
-    // globe.rotation.x += 0.01;
+    await this.rotate({y: 0.002});
 
     await this.setStateAsync({
       renderer,
       scene,
       camera,
-      globe,
     });
 
     // schedule the next frame:
-    requestAnimationFrame(this.animate);
+    requestAnimationFrame(this.spin);
+  }
+
+
+  /**
+   *
+   * @param x
+   * @param y
+   * @returns {Promise<void>}
+   */
+  async rotate({x = 0, y = 0}) {
+    let {globe} = this.state;
+
+    // alter rotation of globe
+    globe.rotation.x += x;
+    globe.rotation.y += y;
+
+    // can only move up to top of globe
+    if (globe.rotation.x > 1.0) globe.rotation.x = 1.0;
+    // can only move down to bottom of globe
+    if (globe.rotation.x < -1.0) globe.rotation.x = -1.0;
+
+    // set the new state
+    await this.setStateAsync({globe});
   }
 
 
