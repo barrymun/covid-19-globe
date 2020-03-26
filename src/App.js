@@ -238,7 +238,7 @@ class App extends Base {
 
     // mesh material ...
     // let material = new THREE.MeshBasicMaterial({color: 0x51D3FF});
-    let material = new THREE.MeshBasicMaterial({map: texture, overdraw: 0.5});
+    let material = new THREE.MeshBasicMaterial({map: texture});
 
     // create a new mesh with sphere geometry.
     let mesh = new THREE.Mesh(geometry, material);
