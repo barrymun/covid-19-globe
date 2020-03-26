@@ -16,13 +16,14 @@ class App extends Base {
   renderer = null;
   scene = null;
   camera = null;
+  globe = null;
 
   constructor(props) {
     super(props);
 
     this.container = React.createRef();
 
-    this.update = this.update.bind(this);
+    this.animate = this.animate.bind(this);
   }
 
 
@@ -41,27 +42,30 @@ class App extends Base {
     const RADIUS = 200;
     const SEGMENTS = 50;
     const RINGS = 50;
-    const globe = new THREE.Group();
-    this.scene.add(globe);
+    this.globe = new THREE.Group();
+    this.scene.add(this.globe);
 
     let loader = new THREE.TextureLoader();
-    console.log({loader})
-    loader.load(EARTH_PATH, function (texture) {
+    loader.load(
+      EARTH_PATH,
+      texture => {
 
-      // Create the sphere
-      let sphere = new THREE.SphereGeometry(RADIUS, SEGMENTS, RINGS);
-      // Map the texture to the material.
-      let material = new THREE.MeshBasicMaterial({map: texture, overdraw: 0.5});
-      // Create a new mesh with sphere geometry.
-      let mesh = new THREE.Mesh(sphere, material);
+        // Create the sphere
+        let sphere = new THREE.SphereGeometry(RADIUS, SEGMENTS, RINGS);
+        // Map the texture to the material.
+        let material = new THREE.MeshBasicMaterial({map: texture, overdraw: 0.5});
+        // Create a new mesh with sphere geometry.
+        let mesh = new THREE.Mesh(sphere, material);
 
-      // Add mesh to globe
-      globe.add(mesh);
+        // Add mesh to globe
+        this.globe.add(mesh);
 
-    }, undefined, function (err) {
-      console.log({err})
-    });
-    globe.position.z = -300;
+      },
+      null,
+      err => {
+        console.log({err})
+      });
+    this.globe.position.z = -300;
 
     const pointLight = new THREE.PointLight(0xFFFFFF);
     pointLight.position.x = 10;
@@ -69,16 +73,20 @@ class App extends Base {
     pointLight.position.z = 400;
     this.scene.add(pointLight);
 
-    requestAnimationFrame(this.update);
+    this.animate()
   }
 
 
-  update() {
-
-    //Render:
+  animate() {
+    // render:
     this.renderer.render(this.scene, this.camera);
-    // Schedule the next frame:
-    requestAnimationFrame(this.update);
+
+    // rotate
+    this.globe.rotation.y += 0.002;
+    // this.globe.rotation.x += 0.01;
+
+    // schedule the next frame:
+    requestAnimationFrame(this.animate);
   }
 
 
