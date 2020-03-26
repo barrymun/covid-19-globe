@@ -36,6 +36,7 @@ class App extends Base {
     this.container = React.createRef();
 
     // bindings
+    this.windowResize = this.windowResize.bind(this);
     this.mouseDown = this.mouseDown.bind(this);
     this.mouseMove = this.mouseMove.bind(this);
     this.mouseUp = this.mouseUp.bind(this);
@@ -48,6 +49,7 @@ class App extends Base {
 
   async componentDidMount() {
     // listeners
+    window.addEventListener("resize", this.windowResize);
     window.addEventListener("mousedown", this.mouseDown);
     window.addEventListener("mousemove", this.mouseMove);
     window.addEventListener("mouseup", this.mouseUp);
@@ -59,9 +61,23 @@ class App extends Base {
 
   componentWillUnmount() {
     // destroy listeners
+    window.removeEventListener("resize", this.windowResize);
     window.removeEventListener("mousedown", this.mouseDown);
     window.removeEventListener("mousemove", this.mouseMove);
     window.removeEventListener("mouseup", this.mouseUp);
+  }
+
+
+  /**
+   *
+   */
+  windowResize() {
+    let {renderer} = this.state;
+
+    if (renderer == null) return;
+
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    this.setState({renderer});
   }
 
 
@@ -127,6 +143,7 @@ class App extends Base {
 
 
   /**
+   * only execute this method once when the component has been mounted
    *
    * @returns {Promise<void>}
    */
