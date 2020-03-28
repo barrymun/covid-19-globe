@@ -1,5 +1,9 @@
 import React from 'react';
 import * as THREE from "three";
+import * as d3 from "d3";
+import * as d3Geo from "d3-geo";
+import * as d3Q from "d3-queue";
+import * as topojson from "topojson-client";
 import {Base} from "./_components";
 
 import "./_static/css/globe.css";
@@ -49,22 +53,161 @@ class App extends Base {
 
   async componentDidMount() {
     // listeners
-    window.addEventListener("resize", this.windowResize);
-    window.addEventListener("mousedown", this.mouseDown);
-    window.addEventListener("mousemove", this.mouseMove);
-    window.addEventListener("mouseup", this.mouseUp);
+    // window.addEventListener("resize", this.windowResize);
+    // window.addEventListener("mousedown", this.mouseDown);
+    // window.addEventListener("mousemove", this.mouseMove);
+    // window.addEventListener("mouseup", this.mouseUp);
 
     // init
-    await this.build();
+    // await this.build();
+    await this.build2();
   }
+
+
+  build2 = async () => {
+    var width = 960,
+      height = 600,
+      speed = 1e-2,
+      start = Date.now();
+
+    var sphere = {type: "Sphere"};
+
+    var projection = d3Geo.geoOrthographic()
+      .scale(height / 2.1)
+      .translate([width / 2, height / 2])
+      .clipAngle(90)
+      .precision(.5);
+
+    var graticule = d3Geo.geoGraticule();
+
+    var canvas = d3.select(this.container)
+      .append("canvas")
+      .attr("width", width)
+      .attr("height", height);
+
+    console.log({
+      canvas,
+      // context,
+      // path,
+    })
+    var context = canvas.node().getContext("2d");
+
+    var path = d3Geo.geoPath()
+      .projection(projection)
+      .context(context);
+
+    var hiddenCanvas = d3.select(this.container).append("canvas")
+      .attr("width", width)
+      .attr("height", height);
+
+    var hiddenContext = hiddenCanvas.node().getContext("2d");
+
+    var hiddenProjection = d3Geo.geoEquirectangular()
+      .translate([width / 2, height / 2])
+      .scale(width / 7);
+
+    var hiddenPath = d3Geo.geoPath()
+      .projection(hiddenProjection)
+      .context(hiddenContext);
+
+    // var q = d3Q.queue()
+    //   .defer(d3.json, "world-110m.json")
+    //   .await(function (error, topo) {
+    //     console.log({error, topo})
+    //   })
+
+    // function ready(error, world, countryData) {
+    //   console.log({error, world, countryData})
+    // }
+
+    let topo = await d3.json("world-110m.json")
+    console.log({topo})
+    var selected = false;
+
+    var land = topojson.feature(topo, topo.objects.land),
+      borders = topojson.feature(topo, topo.objects.countries),
+      grid = graticule();
+
+    // var fillToCountry = {};
+    var i = borders.features.length;
+    while (i--) {
+      hiddenContext.beginPath();
+      hiddenPath(borders.features[i]);
+      hiddenContext.fillStyle = "rgb(" + i + ",0,0)";
+      hiddenContext.fill();
+    }
+
+    d3.timer(function () {
+      projection.rotate([speed * (Date.now() - start), -15]);
+
+      context.clearRect(0, 0, width, height);
+
+      context.beginPath();
+      path(sphere);
+      context.lineWidth = 3;
+      context.strokeStyle = "#000";
+      context.stroke();
+
+      context.beginPath();
+      path(sphere);
+      context.fillStyle = "#fff";
+      context.fill();
+
+      context.beginPath();
+      path(land);
+      context.fillStyle = "#222";
+      context.fill();
+
+      context.beginPath();
+      path(borders);
+      context.lineWidth = .5;
+      context.strokeStyle = "#fff";
+      context.stroke();
+
+      context.beginPath();
+      path(grid);
+      context.lineWidth = .5;
+      context.strokeStyle = "rgba(119,119,119,.5)";
+      context.stroke();
+
+      if (selected !== false) {
+        context.beginPath();
+        path(borders.features[selected]);
+        context.fillStyle = "#0ad";
+        context.fill();
+      }
+    });
+
+    canvas
+      .on("mousemove", select)
+      .on("touchstart", select);
+
+    function select() {
+      var pos = d3.mouse(this);
+      var latlong = projection.invert(pos);
+      var hiddenPos = hiddenProjection(latlong);
+      if (hiddenPos[0] > -1) {
+        var p = hiddenContext.getImageData(hiddenPos[0], hiddenPos[1], 1, 1).data;
+        selected = p[0];
+        context.beginPath();
+        path(borders.features[selected]);
+        context.fillStyle = "#0ad";
+        context.fill();
+      } else {
+        selected = false;
+      }
+    }
+
+    // d3.select(this.frameElement).style("height", (2*height) + "px");
+  };
 
 
   componentWillUnmount() {
     // destroy listeners
-    window.removeEventListener("resize", this.windowResize);
-    window.removeEventListener("mousedown", this.mouseDown);
-    window.removeEventListener("mousemove", this.mouseMove);
-    window.removeEventListener("mouseup", this.mouseUp);
+    // window.removeEventListener("resize", this.windowResize);
+    // window.removeEventListener("mousedown", this.mouseDown);
+    // window.removeEventListener("mousemove", this.mouseMove);
+    // window.removeEventListener("mouseup", this.mouseUp);
   }
 
 
