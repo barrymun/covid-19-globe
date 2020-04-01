@@ -121,6 +121,7 @@ class App extends Base {
     // }
 
     let topo = await d3.json("world-110m.json")
+    let countryData = await d3.tsv("world-110m-country-names.tsv")
     console.log({topo})
     var selected = false;
 
@@ -138,6 +139,8 @@ class App extends Base {
     }
 
     d3.timer(function () {
+      let country, countryText = null;
+
       projection.rotate([speed * (Date.now() - start), -15]);
 
       context.clearRect(0, 0, width, height);
@@ -186,11 +189,20 @@ class App extends Base {
       var pos = d3.mouse(this);
       var latlong = projection.invert(pos);
       var hiddenPos = hiddenProjection(latlong);
+
       if (hiddenPos[0] > -1) {
-        var p = hiddenContext.getImageData(hiddenPos[0], hiddenPos[1], 1, 1).data;
+        let p = hiddenContext.getImageData(hiddenPos[0], hiddenPos[1], 1, 1).data;
+        let country = null;
+        let countryText = ``;
+        try {
+          country = borders.features[selected];
+          countryText = countryData.find(o => o.id.toString() === country.id.toString());
+        } catch (e) {
+        }
+        console.log({country, countryText})
         selected = p[0];
         context.beginPath();
-        path(borders.features[selected]);
+        path(country);
         context.fillStyle = "#0ad";
         context.fill();
       } else {
