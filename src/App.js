@@ -2,7 +2,6 @@ import React from 'react';
 import * as THREE from "three";
 import * as d3 from "d3";
 import * as d3Geo from "d3-geo";
-import * as d3Q from "d3-queue";
 import * as topojson from "topojson-client";
 import {Base} from "./_components";
 
@@ -64,156 +63,6 @@ class App extends Base {
   }
 
 
-  build2 = async () => {
-    var width = 960,
-      height = 600,
-      speed = 1e-2,
-      start = Date.now();
-
-    var sphere = {type: "Sphere"};
-
-    var projection = d3Geo.geoOrthographic()
-      .scale(height / 2.1)
-      .translate([width / 2, height / 2])
-      .clipAngle(90)
-      .precision(.5);
-
-    var graticule = d3Geo.geoGraticule();
-
-    var canvas = d3.select(this.container)
-      .append("canvas")
-      .attr("width", width)
-      .attr("height", height);
-
-    console.log({
-      canvas,
-      // context,
-      // path,
-    })
-    var context = canvas.node().getContext("2d");
-
-    var path = d3Geo.geoPath()
-      .projection(projection)
-      .context(context);
-
-    var hiddenCanvas = d3.select(this.container).append("canvas")
-      .attr("width", width)
-      .attr("height", height);
-
-    var hiddenContext = hiddenCanvas.node().getContext("2d");
-
-    var hiddenProjection = d3Geo.geoEquirectangular()
-      .translate([width / 2, height / 2])
-      .scale(width / 7);
-
-    var hiddenPath = d3Geo.geoPath()
-      .projection(hiddenProjection)
-      .context(hiddenContext);
-
-    // var q = d3Q.queue()
-    //   .defer(d3.json, "world-110m.json")
-    //   .await(function (error, topo) {
-    //     console.log({error, topo})
-    //   })
-
-    // function ready(error, world, countryData) {
-    //   console.log({error, world, countryData})
-    // }
-
-    let topo = await d3.json("world-110m.json")
-    let countryData = await d3.tsv("world-110m-country-names.tsv")
-    console.log({topo})
-    var selected = false;
-
-    var land = topojson.feature(topo, topo.objects.land),
-      borders = topojson.feature(topo, topo.objects.countries),
-      grid = graticule();
-
-    // var fillToCountry = {};
-    var i = borders.features.length;
-    while (i--) {
-      hiddenContext.beginPath();
-      hiddenPath(borders.features[i]);
-      hiddenContext.fillStyle = "rgb(" + i + ",0,0)";
-      hiddenContext.fill();
-    }
-
-    d3.timer(function () {
-      let country, countryText = null;
-
-      projection.rotate([speed * (Date.now() - start), -15]);
-
-      context.clearRect(0, 0, width, height);
-
-      context.beginPath();
-      path(sphere);
-      context.lineWidth = 3;
-      context.strokeStyle = "#000";
-      context.stroke();
-
-      context.beginPath();
-      path(sphere);
-      context.fillStyle = "#fff";
-      context.fill();
-
-      context.beginPath();
-      path(land);
-      context.fillStyle = "#222";
-      context.fill();
-
-      context.beginPath();
-      path(borders);
-      context.lineWidth = .5;
-      context.strokeStyle = "#fff";
-      context.stroke();
-
-      context.beginPath();
-      path(grid);
-      context.lineWidth = .5;
-      context.strokeStyle = "rgba(119,119,119,.5)";
-      context.stroke();
-
-      if (selected !== false) {
-        context.beginPath();
-        path(borders.features[selected]);
-        context.fillStyle = "#0ad";
-        context.fill();
-      }
-    });
-
-    canvas
-      .on("mousemove", select)
-      .on("touchstart", select);
-
-    function select() {
-      var pos = d3.mouse(this);
-      var latlong = projection.invert(pos);
-      var hiddenPos = hiddenProjection(latlong);
-
-      if (hiddenPos[0] > -1) {
-        let p = hiddenContext.getImageData(hiddenPos[0], hiddenPos[1], 1, 1).data;
-        let country = null;
-        let countryText = ``;
-        try {
-          country = borders.features[selected];
-          countryText = countryData.find(o => o.id.toString() === country.id.toString());
-        } catch (e) {
-        }
-        console.log({country, countryText})
-        selected = p[0];
-        context.beginPath();
-        path(country);
-        context.fillStyle = "#0ad";
-        context.fill();
-      } else {
-        selected = false;
-      }
-    }
-
-    // d3.select(this.frameElement).style("height", (2*height) + "px");
-  };
-
-
   componentWillUnmount() {
     // destroy listeners
     // window.removeEventListener("resize", this.windowResize);
@@ -221,6 +70,164 @@ class App extends Base {
     // window.removeEventListener("mousemove", this.mouseMove);
     // window.removeEventListener("mouseup", this.mouseUp);
   }
+
+
+  build2 = async () => {
+    let width = 960,
+      height = 600,
+      speed = 1e-2,
+      start = Date.now();
+
+    let sphere = {type: "Sphere"};
+
+    this.projection = d3Geo.geoOrthographic()
+      .scale(height / 2.1)
+      .translate([width / 2, height / 2])
+      .clipAngle(90)
+      .precision(.5)
+    ;
+    this.graticule = d3Geo.geoGraticule();
+    this.canvas = d3.select(this.container)
+      .append("canvas")
+      .attr("width", width)
+      .attr("height", height)
+    ;
+    this.context = this.canvas.node().getContext("2d");
+    this.path = d3Geo.geoPath()
+      .projection(this.projection)
+      .context(this.context)
+    ;
+
+    let hiddenCanvas = d3.select(this.container)
+      .append("canvas")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("style", "display: none;")
+    ;
+    let hiddenContext = hiddenCanvas.node().getContext("2d");
+    let hiddenProjection = d3Geo.geoEquirectangular()
+      .translate([width / 2, height / 2])
+      .scale(width / 7)
+    ;
+    let hiddenPath = d3Geo.geoPath()
+      .projection(hiddenProjection)
+      .context(hiddenContext)
+    ;
+
+    let topo = await d3.json("world-110m.json");
+    let countryData = await d3.tsv("world-110m-country-names.tsv");
+    let selected = false;
+    let land = topojson.feature(topo, topo.objects.land),
+      borders = topojson.feature(topo, topo.objects.countries),
+      grid = this.graticule();
+
+    let i = borders.features.length;
+    while (i--) {
+      hiddenContext.beginPath();
+      hiddenPath(borders.features[i]);
+      hiddenContext.fillStyle = "rgb(" + i + ",0,0)";
+      hiddenContext.fill();
+    }
+
+    d3.timer(() => {
+      this.projection.rotate([1.6 * speed * (Date.now() - start), -15]);
+      this.context.clearRect(0, 0, width, height);
+
+      this.context.beginPath();
+      this.path(sphere);
+      this.context.lineWidth = 3;
+      this.context.strokeStyle = "#000";
+      this.context.stroke();
+
+      this.context.beginPath();
+      this.path(sphere);
+      this.context.fillStyle = "#fff";
+      this.context.fill();
+
+      this.context.beginPath();
+      this.path(land);
+      this.context.fillStyle = "#222";
+      this.context.fill();
+
+      this.context.beginPath();
+      this.path(borders);
+      this.context.lineWidth = .5;
+      this.context.strokeStyle = "#fff";
+      this.context.stroke();
+
+      this.context.beginPath();
+      this.path(grid);
+      this.context.lineWidth = .5;
+      this.context.strokeStyle = "rgba(119,119,119,.5)";
+      this.context.stroke();
+
+      if (selected !== false) {
+        this.context.beginPath();
+        this.path(borders.features[selected]);
+        this.context.fillStyle = "#0ad";
+        this.context.fill();
+      }
+    });
+
+    const mouseMove = () => {
+
+      if (!this.drag) {
+        let pos = d3.mouse(this.context.canvas);
+        let latlong = this.projection.invert(pos);
+        let hiddenPos = hiddenProjection(latlong);
+
+        if (hiddenPos[0] > -1) {
+          let p = hiddenContext.getImageData(hiddenPos[0], hiddenPos[1], 1, 1).data;
+          let country = null;
+          let countryText = ``;
+          try {
+            country = borders.features[selected];
+            countryText = countryData.find(o => o.id.toString() === country.id.toString());
+          } catch (e) {
+          }
+          // console.log(countryText.name, countryText.id)
+          selected = p[0];
+          if (p[3] === 0) {
+            // handling water hover
+            selected = false;
+            return;
+          }
+          this.context.beginPath();
+          this.path(country);
+          this.context.fillStyle = "#0ad";
+          this.context.fill();
+        } else {
+          selected = false;
+        }
+      }
+      else {
+        console.log(`HERE2`, d3.event.movementX, d3.event.movementY)
+        // const target = [
+        //   0.25 * d3.event.movementX + this.x,
+        //   -.25 * d3.event.movementY + this.y
+        // ];
+        // this.projection.rotate([0.25 * d3.event.movementX + this.x, -.25 * d3.event.movementY + this.y, 0]);
+        // this.projection.rotate([0.25 * d3.event.movementX, -.25 * d3.event.movementY]);
+      }
+
+    };
+
+    const mouseDown = () => {
+      this.drag = true;
+    };
+
+    const mouseUp = () => {
+      this.drag = false;
+    };
+
+    this.canvas
+      .on("mousemove", mouseMove)
+      .on("mousedown", mouseDown)
+      .on("mouseup", mouseUp)
+      .on("mouseleave", mouseUp)
+    ;
+
+  };
 
 
   /**
