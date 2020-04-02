@@ -73,7 +73,7 @@ class App extends Base {
 
 
   build2 = async () => {
-    let width = 960,
+    let width = 800,
       height = 600,
       speed = 1e-2,
       start = Date.now();
@@ -91,6 +91,7 @@ class App extends Base {
       .append("canvas")
       .attr("width", width)
       .attr("height", height)
+      // .attr("style", `width: ${window.innerWidth}px !important; height: ${window.innerHeight}px !important;`)
     ;
     this.context = this.canvas.node().getContext("2d");
     this.path = d3Geo.geoPath()
