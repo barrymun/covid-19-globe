@@ -21,6 +21,7 @@ const RINGS = 50;
 class App extends Base {
 
   container = null;
+  tooltip = null;
 
   state = {
     renderer: null,
@@ -37,6 +38,7 @@ class App extends Base {
 
     // refs
     this.container = React.createRef();
+    this.tooltip = React.createRef();
 
     // bindings
     this.windowResize = this.windowResize.bind(this);
@@ -91,7 +93,7 @@ class App extends Base {
       .append("canvas")
       .attr("width", width)
       .attr("height", height)
-      // .attr("style", `width: ${window.innerWidth}px !important; height: ${window.innerHeight}px !important;`)
+    // .attr("style", `width: ${window.innerWidth}px !important; height: ${window.innerHeight}px !important;`)
     ;
     this.context = this.canvas.node().getContext("2d");
     this.path = d3Geo.geoPath()
@@ -179,29 +181,41 @@ class App extends Base {
 
         if (hiddenPos[0] > -1) {
           let p = hiddenContext.getImageData(hiddenPos[0], hiddenPos[1], 1, 1).data;
-          let country = null;
-          let countryText = ``;
+          let countryPath = null;
+          let countryObject = {};
           try {
-            country = borders.features[selected];
-            countryText = countryData.find(o => o.id.toString() === country.id.toString());
+            countryPath = borders.features[selected];
+            countryObject = countryData.find(o => o.id.toString() === countryPath.id.toString());
           } catch (e) {
           }
-          // console.log(countryText.name, countryText.id)
+
+          if (countryObject == null) countryObject = {};
+
           selected = p[0];
           if (p[3] === 0) {
             // handling water hover
             selected = false;
+            d3.select(this.tooltip).style('opacity', 0);
             return;
           }
+
           this.context.beginPath();
-          this.path(country);
+          this.path(countryPath);
           this.context.fillStyle = "#0ad";
           this.context.fill();
+
+          d3.select(this.tooltip)
+            .style('opacity', 0.8)
+            .style('top', d3.event.pageY + 5 + 'px')
+            .style('left', d3.event.pageX + 5 + 'px')
+            .html(`<div>${countryObject.name}</div>`);
         } else {
           selected = false;
+
+          d3.select(this.tooltip)
+            .style('opacity', 0);
         }
-      }
-      else {
+      } else {
         console.log(`HERE2`, d3.event.movementX, d3.event.movementY)
         // const target = [
         //   0.25 * d3.event.movementX + this.x,
@@ -432,10 +446,16 @@ class App extends Base {
 
   render() {
     return (
-      <div
-        className={`container`}
-        ref={node => this.container = node}
-      />
+      <div>
+        <div
+          className={`container`}
+          ref={node => this.container = node}
+        />
+        <div
+          className={`tooltip`}
+          ref={node => this.tooltip = node}
+        />
+      </div>
     );
   }
 
